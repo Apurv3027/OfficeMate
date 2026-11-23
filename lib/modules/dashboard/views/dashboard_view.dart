@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../authentication/controllers/auth_controller.dart';
 
 class DashboardView extends GetView<AuthController> {
@@ -72,6 +73,16 @@ class DashboardView extends GetView<AuthController> {
                   'Group management will be implemented in Phase 3.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
+                ),
+
+                const SizedBox(height: 20),
+
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Get.toNamed(AppRoutes.groups);
+                  },
+                  icon: const Icon(Icons.groups),
+                  label: const Text('My Groups'),
                 ),
               ],
             ),
