@@ -113,11 +113,12 @@ class AuthController extends GetxController {
     try {
       isLoading.value = true;
 
-      await _repository.logout();
+      // Navigate to login screen first so all route listeners and controllers are unmounted/cancelled
+      Get.offAllNamed(AppRoutes.login);
 
       currentUser.value = null;
 
-      Get.offAllNamed(AppRoutes.login);
+      await _repository.logout();
     } catch (e) {
       _showError('Unable to logout. Please try again.');
     } finally {

@@ -21,4 +21,7 @@ class AppRoutes {
   static const String purchases = '/purchases';
   static const String addPurchase = '/purchases/add';
   static const String purchaseDetails = '/purchases/details';
+
+  // Balances
+  static const String balances = '/balances';
 }

@@ -200,13 +200,21 @@ class PurchaseRepository {
   }
 
   Stream<List<PurchaseModel>> watchPurchases(String groupId) {
-    return _purchases(
-      groupId,
-    ).orderBy('purchasedAt', descending: true).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return PurchaseModel.fromJson(doc.id, doc.data());
-      }).toList();
-    });
+    return _purchases(groupId)
+        .orderBy('purchasedAt', descending: true)
+        .snapshots()
+        .handleError((error) {
+          // Gracefully suppress permission-denied errors that fire when the user logs out
+          if (error is FirebaseException && error.code == 'permission-denied') {
+            return;
+          }
+          throw error;
+        })
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return PurchaseModel.fromJson(doc.id, doc.data());
+          }).toList();
+        });
   }
 
   Future<PurchaseModel?> getPurchase({
