@@ -17,7 +17,7 @@ class OfficeMateApp extends StatelessWidget {
 
       initialBinding: InitialBinding(),
 
-      initialRoute: AppRoutes.home,
+      initialRoute: AppRoutes.splash,
 
       getPages: AppPages.pages,
 
