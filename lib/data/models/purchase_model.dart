@@ -10,6 +10,8 @@ class PurchaseModel {
   final List<String> participantIds;
   final Map<String, int> splitAmounts;
   final String splitType;
+  final String categoryId;
+  final String categoryName;
   final DateTime purchasedAt;
   final String createdBy;
   final DateTime? createdAt;
@@ -25,6 +27,8 @@ class PurchaseModel {
     required this.participantIds,
     required this.splitAmounts,
     required this.splitType,
+    required this.categoryId,
+    required this.categoryName,
     required this.purchasedAt,
     required this.createdBy,
     this.createdAt,
@@ -48,6 +52,8 @@ class PurchaseModel {
         (key, value) => MapEntry(key, (value as num).toInt()),
       ),
       splitType: json['splitType'] ?? 'equal',
+      categoryId: json['categoryId'] as String? ?? 'other',
+      categoryName: json['categoryName'] as String? ?? 'Other',
       purchasedAt:
           (json['purchasedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdBy: json['createdBy'] ?? '',
@@ -66,6 +72,8 @@ class PurchaseModel {
       'participantIds': participantIds,
       'splitAmounts': splitAmounts,
       'splitType': splitType,
+      'categoryId': categoryId,
+      'categoryName': categoryName,
       'purchasedAt': Timestamp.fromDate(purchasedAt),
       'createdBy': createdBy,
       'createdAt': FieldValue.serverTimestamp(),

@@ -98,6 +98,8 @@ class PurchaseRepository {
     required Map<String, int> splitAmounts,
     required String splitType,
     required DateTime purchasedAt,
+    required String categoryId,
+    required String categoryName,
   }) async {
     if (title.trim().length < 2) {
       throw Exception('Enter a valid purchase title.');
@@ -183,6 +185,8 @@ class PurchaseRepository {
       transaction.set(purchaseRef, {
         'title': title.trim(),
         'description': description.trim(),
+        'categoryId': categoryId,
+        'categoryName': categoryName,
         'amountPaise': amountPaise,
         'paidBy': paidBy,
         'paidByName': paidByName,

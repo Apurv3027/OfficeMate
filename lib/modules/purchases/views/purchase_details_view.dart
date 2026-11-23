@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../../data/models/food_category_model.dart';
 import '../../../data/models/purchase_model.dart';
 import '../../../data/repositories/group_repository.dart';
 import '../../../data/repositories/purchase_repository.dart';
@@ -97,6 +98,14 @@ class PurchaseDetailsView extends StatelessWidget {
                     leading: const Icon(Icons.person_outline),
                     title: const Text('Paid By'),
                     subtitle: Text(purchase.paidByName),
+                  ),
+
+                  ListTile(
+                    leading: Icon(
+                      FoodCategoryModel.findById(purchase.categoryId).icon,
+                    ),
+                    title: const Text('Category'),
+                    subtitle: Text(purchase.categoryName),
                   ),
 
                   ListTile(

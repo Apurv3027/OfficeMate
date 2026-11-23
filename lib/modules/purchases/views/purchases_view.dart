@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/repositories/purchase_repository.dart';
+import '../../../data/models/food_category_model.dart';
 import '../../../data/models/purchase_model.dart';
 import '../../../app/routes/app_routes.dart';
 
@@ -95,22 +96,38 @@ class PurchasesView extends StatelessWidget {
                   itemCount: purchases.length,
                   itemBuilder: (context, index) {
                     final purchase = purchases[index];
+                    final category =
+                        FoodCategoryModel.findById(purchase.categoryId);
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(16),
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.receipt_long),
+                        leading: CircleAvatar(
+                          child: Icon(category.icon),
                         ),
                         title: Text(
                           purchase.title,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text(
-                          'Paid by ${purchase.paidByName}\n'
-                          '${DateFormat('dd MMM yyyy').format(purchase.purchasedAt)}'
-                          ' • ${purchase.participantIds.length} participants',
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(category.icon, size: 18),
+                                const SizedBox(width: 6),
+                                Text(purchase.categoryName),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Paid by ${purchase.paidByName}\n'
+                              '${DateFormat('dd MMM yyyy').format(purchase.purchasedAt)}'
+                              ' • ${purchase.participantIds.length} participants',
+                            ),
+                          ],
                         ),
                         isThreeLine: true,
                         trailing: Text(

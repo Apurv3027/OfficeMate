@@ -107,6 +107,8 @@ class PurchaseController extends GetxController {
     required String description,
     required int amountPaise,
     required DateTime purchasedAt,
+    required String categoryId,
+    required String categoryName,
   }) async {
     try {
       if (selectedParticipants.isEmpty) {
@@ -142,6 +144,8 @@ class PurchaseController extends GetxController {
         splitAmounts: splits,
         splitType: splitType.value,
         purchasedAt: purchasedAt,
+        categoryId: categoryId,
+        categoryName: categoryName,
       );
 
       Get.back(result: true);

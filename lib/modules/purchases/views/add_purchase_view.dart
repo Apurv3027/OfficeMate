@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../../data/models/food_category_model.dart';
 import '../controllers/purchase_controller.dart';
 
 class AddPurchaseView extends StatefulWidget {
@@ -21,6 +22,8 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
   late final PurchaseController controller;
 
   DateTime purchasedAt = DateTime.now();
+
+  String selectedCategoryId = 'buttermilk';
 
   @override
   void initState() {
@@ -106,6 +109,42 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
                 validator: (value) {
                   if (value == null || value.trim().length < 2) {
                     return 'Enter a valid purchase name.';
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<String>(
+                initialValue: selectedCategoryId,
+                decoration: const InputDecoration(
+                  labelText: 'Food Category',
+                  prefixIcon: Icon(Icons.category_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                items: FoodCategoryModel.categories.map((category) {
+                  return DropdownMenuItem<String>(
+                    value: category.id,
+                    child: Row(
+                      children: [
+                        Icon(category.icon, size: 20),
+                        const SizedBox(width: 10),
+                        Text(category.name),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      selectedCategoryId = value;
+                    });
+                  }
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select a category';
                   }
                   return null;
                 },
@@ -350,11 +389,17 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
                               return;
                             }
 
+                            final selectedCategory = FoodCategoryModel.findById(
+                              selectedCategoryId,
+                            );
+
                             controller.addPurchase(
                               title: _titleController.text,
                               description: _descriptionController.text,
                               amountPaise: amountPaise,
                               purchasedAt: purchasedAt,
+                              categoryId: selectedCategory.id,
+                              categoryName: selectedCategory.name,
                             );
                           },
                     child: controller.isSaving.value

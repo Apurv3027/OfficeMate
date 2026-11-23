@@ -39,7 +39,70 @@ service cloud.firestore {
       // Group purchases subcollection
       match /purchases/{purchaseId} {
         allow read: if isAuthenticated();
-        allow create: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && request.resource.data.keys().hasAll([
+            'title',
+            'description',
+            'categoryId',
+            'categoryName',
+            'amountPaise',
+            'paidBy',
+            'paidByName',
+            'participantIds',
+            'splitAmounts',
+            'splitType',
+            'purchasedAt',
+            'createdBy',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'title',
+            'description',
+            'categoryId',
+            'categoryName',
+            'amountPaise',
+            'paidBy',
+            'paidByName',
+            'participantIds',
+            'splitAmounts',
+            'splitType',
+            'purchasedAt',
+            'createdBy',
+            'createdAt',
+            'updatedAt'
+          ])
+          && (
+            (
+              request.resource.data.categoryId == 'buttermilk'
+              && request.resource.data.categoryName == 'Buttermilk'
+            )
+            ||
+            (
+              request.resource.data.categoryId == 'tea_coffee'
+              && request.resource.data.categoryName == 'Tea & Coffee'
+            )
+            ||
+            (
+              request.resource.data.categoryId == 'snacks'
+              && request.resource.data.categoryName == 'Snacks'
+            )
+            ||
+            (
+              request.resource.data.categoryId == 'lunch'
+              && request.resource.data.categoryName == 'Lunch'
+            )
+            ||
+            (
+              request.resource.data.categoryId == 'cold_drinks'
+              && request.resource.data.categoryName == 'Cold Drinks'
+            )
+            ||
+            (
+              request.resource.data.categoryId == 'other'
+              && request.resource.data.categoryName == 'Other'
+            )
+          );
         allow update, delete: if isAuthenticated();
       }
     }
