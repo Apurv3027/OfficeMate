@@ -16,4 +16,9 @@ class AppRoutes {
   static const String groups = '/groups';
   static const String createGroup = '/groups/create';
   static const String groupDetails = '/groups/details';
+
+  // Purchases
+  static const String purchases = '/purchases';
+  static const String addPurchase = '/purchases/add';
+  static const String purchaseDetails = '/purchases/details';
 }

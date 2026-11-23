@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../../data/models/group_model.dart';
 import '../controllers/group_controller.dart';
 
@@ -107,6 +108,14 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                Get.toNamed(AppRoutes.purchases, arguments: group.id);
+              },
+              icon: const Icon(Icons.receipt_long),
+              label: const Text('View Purchases'),
             ),
             const SizedBox(height: 20),
             Row(

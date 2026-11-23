@@ -4,6 +4,10 @@ import '../../modules/groups/bindings/group_binding.dart';
 import '../../modules/groups/views/create_group_view.dart';
 import '../../modules/groups/views/group_details_view.dart';
 import '../../modules/groups/views/groups_view.dart';
+import '../../modules/purchases/bindings/purchase_binding.dart';
+import '../../modules/purchases/views/add_purchase_view.dart';
+import '../../modules/purchases/views/purchase_details_view.dart';
+import '../../modules/purchases/views/purchases_view.dart';
 import '../../modules/splash/bindings/splash_binding.dart';
 import '../../modules/splash/views/splash_view.dart';
 import '../../modules/authentication/views/login_view.dart';
@@ -52,6 +56,25 @@ class AppPages {
       name: AppRoutes.groupDetails,
       page: () => const GroupDetailsView(),
       binding: GroupBinding(),
+    ),
+
+    // Purchases Screen
+    GetPage(
+      name: AppRoutes.purchases,
+      page: () => const PurchasesView(),
+      binding: PurchaseBinding(),
+    ),
+
+    GetPage(
+      name: AppRoutes.addPurchase,
+      page: () => const AddPurchaseView(),
+      binding: PurchaseBinding(),
+    ),
+
+    GetPage(
+      name: AppRoutes.purchaseDetails,
+      page: () => const PurchaseDetailsView(),
+      binding: PurchaseBinding(),
     ),
   ];
 }
