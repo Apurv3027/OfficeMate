@@ -28,4 +28,7 @@ class AppRoutes {
   // Settlements
   static const String settlements = '/settlements';
   static const String addSettlement = '/settlements/add';
+
+  // Reports
+  static const String reports = '/reports';
 }

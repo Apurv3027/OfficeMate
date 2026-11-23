@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../modules/balances/bindings/balance_binding.dart';
 import '../../modules/balances/views/balances_view.dart';
+import '../../modules/dashboard/bindings/dashboard_binding.dart';
 import '../../modules/groups/bindings/group_binding.dart';
 import '../../modules/groups/views/create_group_view.dart';
 import '../../modules/groups/views/group_details_view.dart';
@@ -10,6 +11,8 @@ import '../../modules/purchases/bindings/purchase_binding.dart';
 import '../../modules/purchases/views/add_purchase_view.dart';
 import '../../modules/purchases/views/purchase_details_view.dart';
 import '../../modules/purchases/views/purchases_view.dart';
+import '../../modules/reports/bindings/report_binding.dart';
+import '../../modules/reports/views/reports_view.dart';
 import '../../modules/settlements/bindings/settlement_binding.dart';
 import '../../modules/settlements/views/add_settlement_view.dart';
 import '../../modules/settlements/views/settlements_view.dart';
@@ -42,7 +45,11 @@ class AppPages {
     ),
 
     // Dashboard Screen
-    GetPage(name: AppRoutes.dashboard, page: () => const DashboardView()),
+    GetPage(
+      name: AppRoutes.dashboard,
+      page: () => const DashboardView(),
+      binding: DashboardBinding(),
+    ),
 
     // Groups Screen
     GetPage(
@@ -100,6 +107,13 @@ class AppPages {
       name: AppRoutes.addSettlement,
       page: () => const AddSettlementView(),
       binding: SettlementBinding(),
+    ),
+
+    // Reports Screen
+    GetPage(
+      name: AppRoutes.reports,
+      page: () => const ReportsView(),
+      binding: ReportBinding(),
     ),
   ];
 }

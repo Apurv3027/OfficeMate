@@ -22,7 +22,23 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
     super.initState();
 
     controller = Get.find<GroupController>();
-    group = Get.arguments as GroupModel;
+
+    final args = Get.arguments;
+    if (args is GroupModel) {
+      group = args;
+    } else if (args is String) {
+      group =
+          controller.groups.firstWhereOrNull((g) => g.id == args) ??
+          GroupModel(
+            id: args,
+            name: 'Group Details',
+            description: '',
+            inviteCode: '',
+            createdBy: '',
+          );
+    } else {
+      throw ArgumentError('Invalid argument for GroupDetailsView: $args');
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.loadMembers(group.id);
@@ -132,6 +148,14 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
               },
               icon: const Icon(Icons.payments_outlined),
               label: const Text('View Settlements'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                Get.toNamed(AppRoutes.reports, arguments: group.id);
+              },
+              icon: const Icon(Icons.bar_chart),
+              label: const Text('Expense Reports'),
             ),
             const SizedBox(height: 20),
             Row(
