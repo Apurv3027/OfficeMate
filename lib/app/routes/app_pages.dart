@@ -10,6 +10,9 @@ import '../../modules/purchases/bindings/purchase_binding.dart';
 import '../../modules/purchases/views/add_purchase_view.dart';
 import '../../modules/purchases/views/purchase_details_view.dart';
 import '../../modules/purchases/views/purchases_view.dart';
+import '../../modules/settlements/bindings/settlement_binding.dart';
+import '../../modules/settlements/views/add_settlement_view.dart';
+import '../../modules/settlements/views/settlements_view.dart';
 import '../../modules/splash/bindings/splash_binding.dart';
 import '../../modules/splash/views/splash_view.dart';
 import '../../modules/authentication/views/login_view.dart';
@@ -84,6 +87,19 @@ class AppPages {
       name: AppRoutes.balances,
       page: () => const BalancesView(),
       binding: BalanceBinding(),
+    ),
+
+    // Settlements Screen
+    GetPage(
+      name: AppRoutes.settlements,
+      page: () => const SettlementsView(),
+      binding: SettlementBinding(),
+    ),
+
+    GetPage(
+      name: AppRoutes.addSettlement,
+      page: () => const AddSettlementView(),
+      binding: SettlementBinding(),
     ),
   ];
 }

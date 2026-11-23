@@ -24,4 +24,8 @@ class AppRoutes {
 
   // Balances
   static const String balances = '/balances';
+
+  // Settlements
+  static const String settlements = '/settlements';
+  static const String addSettlement = '/settlements/add';
 }

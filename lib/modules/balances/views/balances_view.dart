@@ -130,6 +130,28 @@ class BalancesView extends GetView<BalanceController> {
                 Text(formatAmount(member.totalSharePaise)),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Confirmed Payments Sent',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                Text(formatAmount(member.totalSentPaise)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Confirmed Payments Received',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                Text(formatAmount(member.totalReceivedPaise)),
+              ],
+            ),
           ],
         ),
       ),

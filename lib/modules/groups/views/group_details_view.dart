@@ -125,6 +125,14 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
               icon: const Icon(Icons.account_balance_wallet_outlined),
               label: const Text('View Balances'),
             ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                Get.toNamed(AppRoutes.settlements, arguments: group.id);
+              },
+              icon: const Icon(Icons.payments_outlined),
+              label: const Text('View Settlements'),
+            ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
