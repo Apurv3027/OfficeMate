@@ -14,19 +14,21 @@ class GroupMemberModel {
     required this.email,
     required this.role,
     this.joinedAt,
-    this.isActive = true,
+    required this.isActive,
   });
 
   bool get isAdmin => role == 'admin';
 
   factory GroupMemberModel.fromJson(Map<String, dynamic> json) {
+    final joinedAtValue = json['joinedAt'];
+
     return GroupMemberModel(
-      userId: json['userId'] ?? '',
-      fullName: json['fullName'] ?? '',
-      email: json['email'] ?? '',
-      role: json['role'] ?? 'member',
-      joinedAt: (json['joinedAt'] as Timestamp?)?.toDate(),
-      isActive: json['isActive'] ?? true,
+      userId: json['userId'] as String? ?? '',
+      fullName: json['fullName'] as String? ?? 'Unknown',
+      email: json['email'] as String? ?? '',
+      role: json['role'] as String? ?? 'member',
+      joinedAt: joinedAtValue is Timestamp ? joinedAtValue.toDate() : null,
+      isActive: json['isActive'] as bool? ?? false,
     );
   }
 
@@ -36,7 +38,9 @@ class GroupMemberModel {
       'fullName': fullName,
       'email': email,
       'role': role,
-      'joinedAt': FieldValue.serverTimestamp(),
+      'joinedAt': joinedAt == null
+          ? FieldValue.serverTimestamp()
+          : Timestamp.fromDate(joinedAt!),
       'isActive': isActive,
     };
   }

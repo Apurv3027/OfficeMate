@@ -157,6 +157,14 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
               icon: const Icon(Icons.bar_chart),
               label: const Text('Expense Reports'),
             ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                Get.toNamed(AppRoutes.groupMembers, arguments: group.id);
+              },
+              icon: const Icon(Icons.group_outlined),
+              label: const Text('Group Members'),
+            ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -165,10 +173,24 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                   'Members (${controller.members.length})',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                Obx(
-                  () => controller.isCurrentUserAdmin
-                      ? const Chip(label: Text('Admin'))
-                      : const Chip(label: Text('Member')),
+                Row(
+                  children: [
+                    Obx(
+                      () => controller.isCurrentUserAdmin
+                          ? const Chip(label: Text('Admin'))
+                          : const Chip(label: Text('Member')),
+                    ),
+                    const SizedBox(width: 4),
+                    TextButton(
+                      onPressed: () {
+                        Get.toNamed(
+                          AppRoutes.groupMembers,
+                          arguments: group.id,
+                        );
+                      },
+                      child: const Text('View All'),
+                    ),
+                  ],
                 ),
               ],
             ),

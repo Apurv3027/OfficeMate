@@ -207,29 +207,45 @@ class GroupRepository {
     required String groupId,
     required String memberId,
   }) async {
-    final uid = _uid;
+    final currentUserId = FirebaseService.auth.currentUser?.uid;
 
-    if (uid == memberId) {
-      throw Exception('Use Leave Group to leave this group.');
+    if (currentUserId == null) {
+      throw Exception('Please log in first.');
     }
 
-    final groupRef = _groups.doc(groupId);
-    final adminRef = groupRef.collection('members').doc(uid);
+    if (currentUserId == memberId) {
+      throw Exception('You cannot remove yourself.');
+    }
+
+    final groupRef = FirebaseService.firestore
+        .collection('groups')
+        .doc(groupId);
+
+    final adminRef = groupRef.collection('members').doc(currentUserId);
+
     final memberRef = groupRef.collection('members').doc(memberId);
 
-    await _firestore.runTransaction((transaction) async {
+    await FirebaseService.firestore.runTransaction((transaction) async {
       final adminSnapshot = await transaction.get(adminRef);
       final memberSnapshot = await transaction.get(memberRef);
 
-      if (!adminSnapshot.exists ||
-          adminSnapshot.data()?['role'] != 'admin' ||
-          adminSnapshot.data()?['isActive'] != true) {
-        throw Exception('Only group admins can remove members.');
+      if (!adminSnapshot.exists || !memberSnapshot.exists) {
+        throw Exception('Group member not found.');
       }
 
-      if (!memberSnapshot.exists ||
-          memberSnapshot.data()?['isActive'] != true) {
-        throw Exception('Member not found.');
+      final adminData = adminSnapshot.data()!;
+      final memberData = memberSnapshot.data()!;
+
+      if (adminData['role'] != 'admin' || adminData['isActive'] != true) {
+        throw Exception('Only an active admin can remove members.');
+      }
+
+      if (memberData['role'] == 'admin') {
+        throw Exception('The group admin cannot be removed.');
+      }
+
+      if (memberData['isActive'] != true) {
+        throw Exception('This member is already inactive.');
       }
 
       transaction.update(memberRef, {'isActive': false});
@@ -237,23 +253,34 @@ class GroupRepository {
   }
 
   Future<void> leaveGroup(String groupId) async {
-    final uid = _uid;
+    final currentUserId = FirebaseService.auth.currentUser?.uid;
 
-    final groupRef = _groups.doc(groupId);
-    final memberRef = groupRef.collection('members').doc(uid);
+    if (currentUserId == null) {
+      throw Exception('Please log in first.');
+    }
 
-    await _firestore.runTransaction((transaction) async {
+    final memberRef = FirebaseService.firestore
+        .collection('groups')
+        .doc(groupId)
+        .collection('members')
+        .doc(currentUserId);
+
+    await FirebaseService.firestore.runTransaction((transaction) async {
       final memberSnapshot = await transaction.get(memberRef);
 
-      if (!memberSnapshot.exists ||
-          memberSnapshot.data()?['isActive'] != true) {
-        throw Exception('You are not an active member of this group.');
+      if (!memberSnapshot.exists) {
+        throw Exception('You are not a member of this group.');
       }
 
-      if (memberSnapshot.data()?['role'] == 'admin') {
+      final memberData = memberSnapshot.data()!;
+
+      if (memberData['isActive'] != true) {
+        throw Exception('You are already inactive in this group.');
+      }
+
+      if (memberData['role'] == 'admin') {
         throw Exception(
-          'The group admin cannot leave yet. '
-          'Transfer admin responsibility before leaving.',
+          'The admin must transfer the admin role before leaving.',
         );
       }
 

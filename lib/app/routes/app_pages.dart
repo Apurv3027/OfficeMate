@@ -4,8 +4,10 @@ import '../../modules/balances/bindings/balance_binding.dart';
 import '../../modules/balances/views/balances_view.dart';
 import '../../modules/dashboard/bindings/dashboard_binding.dart';
 import '../../modules/groups/bindings/group_binding.dart';
+import '../../modules/groups/bindings/group_members_binding.dart';
 import '../../modules/groups/views/create_group_view.dart';
 import '../../modules/groups/views/group_details_view.dart';
+import '../../modules/groups/views/group_members_view.dart';
 import '../../modules/groups/views/groups_view.dart';
 import '../../modules/purchases/bindings/purchase_binding.dart';
 import '../../modules/purchases/views/add_purchase_view.dart';
@@ -114,6 +116,13 @@ class AppPages {
       name: AppRoutes.reports,
       page: () => const ReportsView(),
       binding: ReportBinding(),
+    ),
+
+    // Group Members Screen
+    GetPage(
+      name: AppRoutes.groupMembers,
+      page: () => const GroupMembersView(),
+      binding: GroupMembersBinding(),
     ),
   ];
 }

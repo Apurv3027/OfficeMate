@@ -31,4 +31,7 @@ class AppRoutes {
 
   // Reports
   static const String reports = '/reports';
+
+  // Group Members
+  static const String groupMembers = '/group-members';
 }

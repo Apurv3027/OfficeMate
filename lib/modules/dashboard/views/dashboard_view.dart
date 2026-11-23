@@ -41,29 +41,7 @@ class DashboardView extends GetView<DashboardController> {
             );
           }
 
-          if (controller.groups.isEmpty) {
-            return ListView(
-              padding: const EdgeInsets.all(24),
-              children: const [
-                SizedBox(height: 100),
-                Icon(Icons.groups_outlined, size: 70),
-                SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    'No groups yet',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    'Create a group or join an existing group to start tracking expenses.',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            );
-          }
+          final hasGroups = controller.groups.isNotEmpty;
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -83,43 +61,77 @@ class DashboardView extends GetView<DashboardController> {
                     'My Groups',
                     style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Get.toNamed(AppRoutes.groups);
-                    },
-                    child: const Text('View All'),
-                  ),
+                  if (hasGroups)
+                    TextButton(
+                      onPressed: () {
+                        Get.toNamed(AppRoutes.groups);
+                      },
+                      child: const Text('View All'),
+                    ),
                 ],
               ),
 
               const SizedBox(height: 8),
 
-              ...controller.groups.map((group) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.groups)),
-                    title: Text(
-                      group.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              if (hasGroups)
+                ...controller.groups.map((group) {
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      leading: const CircleAvatar(child: Icon(Icons.groups)),
+                      title: Text(
+                        group.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        group.description.isEmpty
+                            ? 'Office expense group'
+                            : group.description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Get.toNamed(AppRoutes.groupDetails, arguments: group);
+                      },
                     ),
-                    subtitle: Text(
-                      group.description.isEmpty
-                          ? 'Office expense group'
-                          : group.description,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  );
+                })
+              else
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 24,
                     ),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {
-                      Get.toNamed(AppRoutes.groupDetails, arguments: group);
-                    },
+                    child: Column(
+                      children: const [
+                        Icon(
+                          Icons.groups_outlined,
+                          size: 54,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'No groups yet',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          'Create a group or join an existing group to start tracking expenses.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              }),
+                ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               const Text(
                 'Quick Actions',
