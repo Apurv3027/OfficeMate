@@ -143,6 +143,12 @@ service cloud.firestore {
           );
         allow update, delete: if isAuthenticated();
       }
+
+      // Group settlements subcollection
+      match /settlements/{settlementId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if isAuthenticated();
+      }
     }
 
     // Collection group query support for getMyGroups()

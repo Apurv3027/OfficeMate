@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 
 import '../../modules/balances/bindings/balance_binding.dart';
-import '../../modules/balances/views/balances_view.dart';
+import '../../modules/balances/views/balance_view.dart';
 import '../../modules/dashboard/bindings/dashboard_binding.dart';
 import '../../modules/groups/bindings/group_binding.dart';
 import '../../modules/groups/bindings/group_members_binding.dart';
@@ -94,7 +94,7 @@ class AppPages {
     // Balances Screen
     GetPage(
       name: AppRoutes.balances,
-      page: () => const BalancesView(),
+      page: () => const BalanceView(),
       binding: BalanceBinding(),
     ),
 

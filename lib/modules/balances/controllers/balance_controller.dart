@@ -1,85 +1,111 @@
 import 'dart:async';
+
 import 'package:get/get.dart';
 
 import '../../../data/models/member_balance_model.dart';
 import '../../../data/repositories/balance_repository.dart';
 
 class BalanceController extends GetxController {
-  final BalanceRepository _repository;
+  final BalanceRepository repository;
 
-  BalanceController(this._repository);
+  BalanceController({
+    required this.repository,
+  });
 
-  final RxList<MemberBalanceModel> balances = <MemberBalanceModel>[].obs;
-  StreamSubscription<List<MemberBalanceModel>>? _balanceSubscription;
+  final balances = <MemberBalanceModel>[].obs;
 
-  final RxBool isLoading = true.obs;
-  final RxString errorMessage = ''.obs;
+  final isLoading = true.obs;
+  final errorMessage = ''.obs;
 
-  late String groupId;
+  StreamSubscription<List<MemberBalanceModel>>? _subscription;
+
+  String groupId = '';
 
   @override
   void onInit() {
     super.onInit();
 
-    groupId = Get.arguments as String;
+    final arguments = Get.arguments;
 
-    loadBalances();
+    if (arguments is String && arguments.isNotEmpty) {
+      groupId = arguments;
+      watchBalances();
+    } else {
+      isLoading.value = false;
+      errorMessage.value = 'Group ID is missing.';
+    }
   }
 
-  void loadBalances() {
-    _balanceSubscription?.cancel();
-
+  void watchBalances() {
     isLoading.value = true;
     errorMessage.value = '';
 
-    _balanceSubscription = _repository
-        .watchBalances(groupId)
-        .listen(
-          (result) {
-            balances.assignAll(result);
-            isLoading.value = false;
-          },
-          onError: (error) {
-            errorMessage.value = error.toString().replaceFirst(
-              'Exception: ',
-              '',
-            );
-            isLoading.value = false;
-          },
-        );
+    _subscription?.cancel();
+
+    _subscription = repository.watchBalances(groupId).listen(
+      (data) {
+        balances.assignAll(data);
+        isLoading.value = false;
+        errorMessage.value = '';
+      },
+      onError: (error) {
+        isLoading.value = false;
+        errorMessage.value = error.toString().replaceFirst('Exception: ', '');
+      },
+    );
+  }
+
+  MemberBalanceModel? get currentUserBalance {
+    final currentUserId = repository.currentUserId;
+
+    for (final balance in balances) {
+      if (balance.userId == currentUserId) {
+        return balance;
+      }
+    }
+
+    return null;
+  }
+
+  int get totalGroupExpensePaise {
+    return balances.fold(
+      0,
+      (sum, balance) => sum + balance.totalSharePaise,
+    );
   }
 
   int get totalGroupPaidPaise {
-    return balances.fold<int>(0, (sum, item) => sum + item.totalPaidPaise);
+    return balances.fold(
+      0,
+      (sum, balance) => sum + balance.totalPaidPaise,
+    );
   }
 
-  int get totalGroupSharePaise {
-    return balances.fold<int>(0, (sum, item) => sum + item.totalSharePaise);
-  }
-
-  int get totalReceivablePaise {
+  int get totalToReceivePaise {
     return balances
-        .where((item) => item.netBalancePaise > 0)
-        .fold<int>(0, (sum, item) => sum + item.netBalancePaise);
+        .where((balance) => balance.shouldReceive)
+        .fold(0, (sum, balance) => sum + balance.netBalancePaise);
   }
 
-  int get totalPayablePaise {
+  int get totalToPayPaise {
     return balances
-        .where((item) => item.netBalancePaise < 0)
-        .fold<int>(0, (sum, item) => sum + item.netBalancePaise.abs());
+        .where((balance) => balance.shouldPay)
+        .fold(0, (sum, balance) => sum + balance.absoluteBalancePaise);
   }
 
+  // Backward-compatible helpers
+  int get totalGroupSharePaise => totalGroupExpensePaise;
+  int get totalReceivablePaise => totalToReceivePaise;
+  int get totalPayablePaise => totalToPayPaise;
+  void loadBalances() => watchBalances();
   MemberBalanceModel? getMemberBalance(String userId) {
     final index = balances.indexWhere((item) => item.userId == userId);
-
-    if (index == -1) return null;
-
-    return balances[index];
+    return index == -1 ? null : balances[index];
   }
 
   @override
   void onClose() {
-    _balanceSubscription?.cancel();
+    _subscription?.cancel();
     super.onClose();
   }
 }
