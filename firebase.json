@@ -1,5 +1,6 @@
 {
   "firestore": {
+    "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
   "flutter": {"platforms":{"android":{"default":{"projectId":"officemate-8726f","appId":"1:469598272323:android:43117a9f108876f50e8df6","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"officemate-8726f","appId":"1:469598272323:ios:9f04792430a365190e8df6","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"macos":{"default":{"projectId":"officemate-8726f","appId":"1:469598272323:ios:9f04792430a365190e8df6","uploadDebugSymbols":false,"fileOutput":"macos/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"officemate-8726f","configurations":{"android":"1:469598272323:android:43117a9f108876f50e8df6","ios":"1:469598272323:ios:9f04792430a365190e8df6","macos":"1:469598272323:ios:9f04792430a365190e8df6","web":"1:469598272323:web:59de25f115f29d880e8df6","windows":"1:469598272323:web:f48d071ec8dee9050e8df6"}}}}}}

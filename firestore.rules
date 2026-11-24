@@ -10,6 +10,36 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function memberPath(groupId, userId) {
+      return /databases/$(database)/documents/groups/$(groupId)/members/$(userId);
+    }
+
+    function validPurchaseSplit() {
+      let data = request.resource.data;
+
+      return data.participantIds is list
+        && data.participantIds.size() >= 1
+        && data.participantIds.size() <= 50
+
+        && data.participantIds.toSet().size()
+          == data.participantIds.size()
+
+        && data.splitAmounts is map
+        && data.splitAmounts.size() == data.participantIds.size()
+
+        && data.splitAmounts.keys().hasAll(data.participantIds)
+
+        && data.splitType in ['equal', 'custom']
+
+        && data.amountPaise is int
+        && data.amountPaise > 0;
+    }
+
+    function validPurchaseParticipant(groupId, userId) {
+      return exists(memberPath(groupId, userId))
+        && get(memberPath(groupId, userId)).data.isActive == true;
+    }
+
     // User profiles
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -102,6 +132,14 @@ service cloud.firestore {
               request.resource.data.categoryId == 'other'
               && request.resource.data.categoryName == 'Other'
             )
+          )
+          && validPurchaseSplit()
+          && request.resource.data.participantIds.hasAll(
+            request.resource.data.splitAmounts.keys()
+          )
+          && validPurchaseParticipant(
+            groupId,
+            request.resource.data.paidBy
           );
         allow update, delete: if isAuthenticated();
       }

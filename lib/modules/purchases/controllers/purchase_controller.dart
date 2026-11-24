@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../../../core/utils/expense_split_helper.dart';
 import '../../../data/models/group_member_model.dart';
 import '../../../data/models/purchase_model.dart';
 import '../../../data/repositories/group_repository.dart';
@@ -77,7 +78,8 @@ class PurchaseController extends GetxController {
   }
 
   Map<String, int> getEqualSplits(int amountPaise) {
-    return _repository.calculateEqualSplit(
+    if (selectedParticipants.isEmpty || amountPaise <= 0) return {};
+    return ExpenseSplitHelper.calculateEqualSplit(
       amountPaise: amountPaise,
       participantIds: selectedParticipants.toList(),
     );
@@ -92,14 +94,11 @@ class PurchaseController extends GetxController {
   }
 
   bool isCustomSplitValid(int amountPaise) {
-    if (selectedParticipants.isEmpty) return false;
-
-    if (selectedParticipants.any((id) => !customSplits.containsKey(id))) {
-      return false;
-    }
-
-    return customSplitTotal == amountPaise &&
-        customSplits.values.every((amount) => amount >= 0);
+    return ExpenseSplitHelper.validateCustomSplit(
+      amountPaise: amountPaise,
+      splitAmounts: customSplits,
+      participantIds: selectedParticipants.toList(),
+    );
   }
 
   Future<void> addPurchase({
@@ -109,6 +108,8 @@ class PurchaseController extends GetxController {
     required DateTime purchasedAt,
     required String categoryId,
     required String categoryName,
+    Map<String, int>? splitAmounts,
+    String? splitType,
   }) async {
     try {
       if (selectedParticipants.isEmpty) {
@@ -121,11 +122,18 @@ class PurchaseController extends GetxController {
 
       isSaving.value = true;
 
-      final splits = splitType.value == 'equal'
-          ? getEqualSplits(amountPaise)
-          : Map<String, int>.from(customSplits);
+      final effectiveSplitType = splitType ?? this.splitType.value;
+      final splits = splitAmounts ??
+          (effectiveSplitType == 'equal'
+              ? getEqualSplits(amountPaise)
+              : Map<String, int>.from(customSplits));
 
-      if (splitType.value == 'custom' && !isCustomSplitValid(amountPaise)) {
+      if (effectiveSplitType == 'custom' &&
+          !ExpenseSplitHelper.validateCustomSplit(
+            amountPaise: amountPaise,
+            splitAmounts: splits,
+            participantIds: selectedParticipants.toList(),
+          )) {
         throw Exception('Custom shares must add up to the purchase amount.');
       }
 
@@ -142,7 +150,7 @@ class PurchaseController extends GetxController {
         paidByName: payer.fullName,
         participantIds: selectedParticipants.toList(),
         splitAmounts: splits,
-        splitType: splitType.value,
+        splitType: effectiveSplitType,
         purchasedAt: purchasedAt,
         categoryId: categoryId,
         categoryName: categoryName,

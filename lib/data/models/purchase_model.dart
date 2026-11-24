@@ -38,8 +38,6 @@ class PurchaseModel {
   double get amountInRupees => amountPaise / 100;
 
   factory PurchaseModel.fromJson(String id, Map<String, dynamic> json) {
-    final rawSplits = Map<String, dynamic>.from(json['splitAmounts'] ?? {});
-
     return PurchaseModel(
       id: id,
       title: json['title'] ?? '',
@@ -47,11 +45,18 @@ class PurchaseModel {
       amountPaise: (json['amountPaise'] as num?)?.toInt() ?? 0,
       paidBy: json['paidBy'] ?? '',
       paidByName: json['paidByName'] ?? '',
-      participantIds: List<String>.from(json['participantIds'] ?? []),
-      splitAmounts: rawSplits.map(
-        (key, value) => MapEntry(key, (value as num).toInt()),
+      participantIds: List<String>.from(
+        json['participantIds'] ?? [],
       ),
-      splitType: json['splitType'] ?? 'equal',
+      splitAmounts: Map<String, int>.from(
+        (json['splitAmounts'] as Map? ?? {}).map(
+          (key, value) => MapEntry(
+            key.toString(),
+            (value as num).toInt(),
+          ),
+        ),
+      ),
+      splitType: json['splitType'] as String? ?? 'equal',
       categoryId: json['categoryId'] as String? ?? 'other',
       categoryName: json['categoryName'] as String? ?? 'Other',
       purchasedAt:

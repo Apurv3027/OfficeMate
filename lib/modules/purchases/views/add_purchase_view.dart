@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/utils/expense_split_helper.dart';
 import '../../../data/models/food_category_model.dart';
 import '../controllers/purchase_controller.dart';
 
@@ -19,11 +20,15 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
   final _descriptionController = TextEditingController();
   final _amountController = TextEditingController();
 
+  final Map<String, TextEditingController> _customControllers = {};
+
   late final PurchaseController controller;
 
   DateTime purchasedAt = DateTime.now();
 
   String selectedCategoryId = 'buttermilk';
+  String selectedSplitType = 'equal';
+  Map<String, int> customSplitAmounts = {};
 
   @override
   void initState() {
@@ -38,25 +43,33 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
     _titleController.dispose();
     _descriptionController.dispose();
     _amountController.dispose();
+    for (final c in _customControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   int get amountPaise {
-    final amount = double.tryParse(_amountController.text.trim());
-
-    if (amount == null || !amount.isFinite || amount <= 0) {
+    final text = _amountController.text.trim();
+    if (text.isEmpty) return 0;
+    try {
+      return ExpenseSplitHelper.rupeesToPaise(text);
+    } catch (_) {
       return 0;
     }
-
-    return (amount * 100).round();
   }
 
-  String formatRupees(int paise) {
-    return NumberFormat.currency(
-      locale: 'en_IN',
-      symbol: '₹',
-      decimalDigits: 2,
-    ).format(paise / 100);
+  void _syncCustomSplitsWithParticipants() {
+    customSplitAmounts.removeWhere(
+      (id, _) => !controller.selectedParticipants.contains(id),
+    );
+  }
+
+  TextEditingController _getCustomController(String userId) {
+    if (!_customControllers.containsKey(userId)) {
+      _customControllers[userId] = TextEditingController();
+    }
+    return _customControllers[userId]!;
   }
 
   Future<void> selectPurchaseDate() async {
@@ -86,6 +99,15 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
         if (controller.members.isEmpty) {
           return const Center(child: Text('No active group members found.'));
         }
+
+        final selectedParticipantIds = controller.selectedParticipants.toList();
+        final currentAmountPaise = amountPaise;
+
+        final totalSplitPaise = customSplitAmounts.values.fold<int>(
+          0,
+          (sum, amount) => sum + amount,
+        );
+        final remainingPaise = currentAmountPaise - totalSplitPaise;
 
         return Form(
           key: _formKey,
@@ -177,16 +199,14 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
                 ),
                 onChanged: (_) => setState(() {}),
                 validator: (value) {
-                  final amount = double.tryParse(value ?? '');
-
-                  if (amount == null ||
-                      !amount.isFinite ||
-                      amount <= 0 ||
-                      (amount * 100 - (amount * 100).round()).abs() >
-                          0.000001) {
-                    return 'Enter a valid amount with up to 2 decimals.';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter a purchase amount.';
                   }
-
+                  try {
+                    ExpenseSplitHelper.rupeesToPaise(value.trim());
+                  } catch (e) {
+                    return e.toString().replaceFirst('ArgumentError: ', '');
+                  }
                   return null;
                 },
               ),
@@ -228,7 +248,11 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   TextButton(
-                    onPressed: controller.selectAllParticipants,
+                    onPressed: () {
+                      controller.selectAllParticipants();
+                      _syncCustomSplitsWithParticipants();
+                      setState(() {});
+                    },
                     child: const Text('Select All'),
                   ),
                 ],
@@ -243,46 +267,54 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
                   ),
                   onChanged: (_) {
                     controller.toggleParticipant(member.userId);
+                    _syncCustomSplitsWithParticipants();
+                    setState(() {});
                   },
                 );
               }),
 
               const SizedBox(height: 20),
 
-              Text(
-                'Split Method',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-
-              const SizedBox(height: 10),
-
-              Obx(
-                () => SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: 'equal',
-                      label: Text('Equal'),
-                      icon: Icon(Icons.balance),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Split Type',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
-                    ButtonSegment(
-                      value: 'custom',
-                      label: Text('Custom'),
-                      icon: Icon(Icons.tune),
-                    ),
-                  ],
-                  selected: {controller.splitType.value},
-                  onSelectionChanged: (values) {
-                    controller.changeSplitType(values.first);
-                    setState(() {});
-                  },
-                ),
+                  ),
+                  const SizedBox(height: 10),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'equal',
+                        label: Text('Equal Split'),
+                        icon: Icon(Icons.groups_outlined),
+                      ),
+                      ButtonSegment(
+                        value: 'custom',
+                        label: Text('Custom Split'),
+                        icon: Icon(Icons.tune),
+                      ),
+                    ],
+                    selected: {selectedSplitType},
+                    onSelectionChanged: (selection) {
+                      setState(() {
+                        selectedSplitType = selection.first;
+                        controller.splitType.value = selection.first;
+                      });
+                    },
+                  ),
+                ],
               ),
 
               const SizedBox(height: 16),
 
-              if (controller.splitType.value == 'equal' &&
-                  amountPaise > 0 &&
-                  controller.selectedParticipants.isNotEmpty)
+              if (selectedSplitType == 'equal' &&
+                  currentAmountPaise > 0 &&
+                  selectedParticipantIds.isNotEmpty)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -294,38 +326,67 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 10),
-                        ...controller.getEqualSplits(amountPaise).entries.map((
-                          entry,
-                        ) {
-                          final member = controller.members.firstWhere(
-                            (m) => m.userId == entry.key,
-                          );
+                        ...() {
+                          if (currentAmountPaise < selectedParticipantIds.length) {
+                            return [
+                              const Text(
+                                'Amount must be at least 1 paise per participant.',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ];
+                          }
+                          try {
+                            final splits = ExpenseSplitHelper.calculateEqualSplit(
+                              amountPaise: currentAmountPaise,
+                              participantIds: selectedParticipantIds,
+                            );
 
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(member.fullName),
-                            trailing: Text(formatRupees(entry.value)),
-                          );
-                        }),
+                            return splits.entries.map((entry) {
+                              final member = controller.members.firstWhere(
+                                (m) => m.userId == entry.key,
+                              );
+
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(member.fullName),
+                                trailing: Text(
+                                  ExpenseSplitHelper.formatPaise(entry.value),
+                                ),
+                              );
+                            }).toList();
+                          } catch (e) {
+                            return [
+                              Text(
+                                e.toString().replaceFirst('ArgumentError: ', ''),
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ];
+                          }
+                        }(),
                       ],
                     ),
                   ),
                 ),
 
-              if (controller.splitType.value == 'custom')
+              if (selectedSplitType == 'custom') ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Custom Shares',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
                 ...controller.members
                     .where(
-                      (member) => controller.selectedParticipants.contains(
-                        member.userId,
-                      ),
+                      (member) => selectedParticipantIds.contains(member.userId),
                     )
                     .map((member) {
+                      final customController = _getCustomController(member.userId);
+
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: TextFormField(
-                          key: ValueKey(
-                            '${member.userId}_${controller.selectedParticipants.length}',
-                          ),
+                          key: ValueKey('custom_${member.userId}'),
+                          controller: customController,
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
@@ -335,38 +396,54 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
                             border: const OutlineInputBorder(),
                           ),
                           onChanged: (value) {
-                            final amount = double.tryParse(value);
-                            if (amount != null &&
-                                amount.isFinite &&
-                                amount >= 0 &&
-                                (amount * 100 - (amount * 100).round()).abs() <
-                                    0.000001) {
-                              controller.updateCustomSplit(
-                                member.userId,
-                                (amount * 100).round(),
-                              );
+                            final trimmed = value.trim();
+                            if (trimmed.isEmpty) {
+                              customSplitAmounts.remove(member.userId);
                             } else {
-                              controller.customSplits.remove(member.userId);
+                              try {
+                                final sharePaise = ExpenseSplitHelper.rupeesToPaise(
+                                  trimmed,
+                                );
+                                customSplitAmounts[member.userId] = sharePaise;
+                              } catch (_) {
+                                customSplitAmounts.remove(member.userId);
+                              }
                             }
+                            setState(() {});
                           },
                         ),
                       );
                     }),
-
-              if (controller.splitType.value == 'custom')
-                Obx(
-                  () => Text(
-                    'Allocated: ${formatRupees(controller.customSplitTotal)} / ${formatRupees(amountPaise)}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: controller.isCustomSplitValid(amountPaise)
-                          ? Colors.green
-                          : Colors.red,
-                    ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0, bottom: 12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Allocated: ${ExpenseSplitHelper.formatPaise(totalSplitPaise)} / ${ExpenseSplitHelper.formatPaise(currentAmountPaise)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: remainingPaise == 0
+                              ? Colors.green
+                              : Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Remaining: ${ExpenseSplitHelper.formatPaise(remainingPaise)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: remainingPaise == 0
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              ],
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               OutlinedButton.icon(
                 onPressed: selectPurchaseDate,
@@ -389,6 +466,58 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
                               return;
                             }
 
+                            if (controller.selectedParticipants.isEmpty) {
+                              Get.snackbar(
+                                'Error',
+                                'Select at least one participant.',
+                                snackPosition: SnackPosition.BOTTOM,
+                              );
+                              return;
+                            }
+
+                            final participantIds =
+                                controller.selectedParticipants.toList();
+                            Map<String, int> finalSplitAmounts;
+
+                            if (selectedSplitType == 'equal') {
+                              try {
+                                finalSplitAmounts =
+                                    ExpenseSplitHelper.calculateEqualSplit(
+                                  amountPaise: currentAmountPaise,
+                                  participantIds: participantIds,
+                                );
+                              } catch (e) {
+                                Get.snackbar(
+                                  'Invalid Split',
+                                  e.toString().replaceFirst(
+                                    'ArgumentError: ',
+                                    '',
+                                  ),
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                                return;
+                              }
+                            } else {
+                              final isValid =
+                                  ExpenseSplitHelper.validateCustomSplit(
+                                amountPaise: currentAmountPaise,
+                                splitAmounts: customSplitAmounts,
+                                participantIds: participantIds,
+                              );
+
+                              if (!isValid) {
+                                Get.snackbar(
+                                  'Invalid Split',
+                                  'Participant shares must equal the purchase amount.',
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                                return;
+                              }
+
+                              finalSplitAmounts =
+                                  Map<String, int>.from(customSplitAmounts);
+                            }
+
                             final selectedCategory = FoodCategoryModel.findById(
                               selectedCategoryId,
                             );
@@ -396,10 +525,12 @@ class _AddPurchaseViewState extends State<AddPurchaseView> {
                             controller.addPurchase(
                               title: _titleController.text,
                               description: _descriptionController.text,
-                              amountPaise: amountPaise,
+                              amountPaise: currentAmountPaise,
                               purchasedAt: purchasedAt,
                               categoryId: selectedCategory.id,
                               categoryName: selectedCategory.name,
+                              splitAmounts: finalSplitAmounts,
+                              splitType: selectedSplitType,
                             );
                           },
                     child: controller.isSaving.value

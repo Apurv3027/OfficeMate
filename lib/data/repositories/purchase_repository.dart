@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../core/services/firebase_service.dart';
+import '../../core/utils/expense_split_helper.dart';
 import '../models/purchase_model.dart';
 
 class PurchaseRepository {
@@ -67,24 +68,10 @@ class PurchaseRepository {
     required int amountPaise,
     required List<String> participantIds,
   }) {
-    if (participantIds.isEmpty) {
-      throw Exception('Select at least one participant.');
-    }
-
-    if (amountPaise <= 0) {
-      throw Exception('Amount must be greater than zero.');
-    }
-
-    final baseAmount = amountPaise ~/ participantIds.length;
-    final remainder = amountPaise % participantIds.length;
-
-    final splits = <String, int>{};
-
-    for (int i = 0; i < participantIds.length; i++) {
-      splits[participantIds[i]] = baseAmount + (i < remainder ? 1 : 0);
-    }
-
-    return splits;
+    return ExpenseSplitHelper.calculateEqualSplit(
+      amountPaise: amountPaise,
+      participantIds: participantIds,
+    );
   }
 
   Future<String> addPurchase({
