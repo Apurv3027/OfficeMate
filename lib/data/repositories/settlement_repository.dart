@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../core/services/firebase_service.dart';
+import '../../core/utils/settlement_helper.dart';
 import '../models/settlement_model.dart';
 
 class SettlementRepository {
@@ -36,6 +37,61 @@ class SettlementRepository {
         .doc(userId);
   }
 
+  Future<int> getOutstandingAmount({
+    required String groupId,
+    required String fromUserId,
+    required String toUserId,
+  }) async {
+    // 1. Calculate debt from purchases in the group
+    final purchasesSnapshot = await _firestore
+        .collection('groups')
+        .doc(groupId)
+        .collection('purchases')
+        .get();
+
+    int debtPaise = 0;
+
+    for (final doc in purchasesSnapshot.docs) {
+      final data = doc.data();
+      final paidBy = data['paidBy'] as String?;
+      final splits = Map<String, dynamic>.from(data['splitAmounts'] ?? {});
+
+      // If toUserId paid, fromUserId owes their share in splitAmounts
+      if (paidBy == toUserId && splits.containsKey(fromUserId)) {
+        final share = (splits[fromUserId] as num?)?.toInt() ?? 0;
+        debtPaise += share;
+      }
+      // If fromUserId paid, toUserId owes their share, which offsets
+      if (paidBy == fromUserId && splits.containsKey(toUserId)) {
+        final share = (splits[toUserId] as num?)?.toInt() ?? 0;
+        debtPaise -= share;
+      }
+    }
+
+    // 2. Adjust for confirmed settlements between fromUserId and toUserId
+    final settlementsSnapshot = await _firestore
+        .collection('groups')
+        .doc(groupId)
+        .collection('settlements')
+        .where('status', isEqualTo: 'confirmed')
+        .get();
+
+    for (final doc in settlementsSnapshot.docs) {
+      final data = doc.data();
+      final from = data['fromUserId'] as String?;
+      final to = data['toUserId'] as String?;
+      final amount = (data['amountPaise'] as num?)?.toInt() ?? 0;
+
+      if (from == fromUserId && to == toUserId) {
+        debtPaise -= amount;
+      } else if (from == toUserId && to == fromUserId) {
+        debtPaise += amount;
+      }
+    }
+
+    return debtPaise > 0 ? debtPaise : 0;
+  }
+
   Future<void> createSettlement({
     required String groupId,
     required String toUserId,
@@ -54,6 +110,22 @@ class SettlementRepository {
 
     if (amountPaise > 100000000000) {
       throw Exception('Payment amount is too large.');
+    }
+
+    final outstanding = await getOutstandingAmount(
+      groupId: groupId,
+      fromUserId: fromUserId,
+      toUserId: toUserId,
+    );
+
+    if (outstanding > 0 &&
+        !SettlementHelper.isValidPayment(
+          paymentPaise: amountPaise,
+          outstandingPaise: outstanding,
+        )) {
+      throw Exception(
+        'Payment cannot exceed outstanding amount of ${SettlementHelper.formatRupees(outstanding)}.',
+      );
     }
 
     final settlementRef = _settlements(groupId).doc();
@@ -181,12 +253,20 @@ class SettlementRepository {
   }
 
   Stream<List<SettlementModel>> watchSettlements(String groupId) {
-    return _settlements(
-      groupId,
-    ).orderBy('createdAt', descending: true).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return SettlementModel.fromJson(doc.id, doc.data());
-      }).toList();
-    });
+    return _settlements(groupId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .handleError((error) {
+          if (error is FirebaseException &&
+              error.code == 'permission-denied') {
+            return;
+          }
+          throw error;
+        })
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return SettlementModel.fromJson(doc.id, doc.data());
+          }).toList();
+        });
   }
 }

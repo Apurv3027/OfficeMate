@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/utils/settlement_helper.dart';
 import '../controllers/settlement_controller.dart';
 
 class AddSettlementView extends StatefulWidget {
@@ -42,12 +43,35 @@ class _AddSettlementViewState extends State<AddSettlementView> {
     return (value * 100).round();
   }
 
+  void _onReceiverChanged(String? receiverId) {
+    setState(() {
+      selectedReceiver = receiverId;
+    });
+
+    if (receiverId != null) {
+      controller.fetchOutstandingForReceiver(receiverId);
+    }
+  }
+
+  void _setAmount(int paise) {
+    setState(() {
+      _amountController.text = (paise / 100).toStringAsFixed(2);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Record Payment')),
       body: Obx(() {
         final members = controller.members;
+        final outstandingPaise = controller.selectedReceiverOutstandingPaise.value;
+        final isLoadingDebt = controller.isLoadingOutstanding.value;
+        final currentAmount = amountPaise;
+        final remainingPaise = SettlementHelper.remainingAmount(
+          outstandingPaise: outstandingPaise,
+          confirmedPaymentsPaise: currentAmount,
+        );
 
         return Form(
           key: _formKey,
@@ -56,8 +80,9 @@ class _AddSettlementViewState extends State<AddSettlementView> {
             children: [
               const Text(
                 'Record a payment you have made to another group member.',
+                style: TextStyle(color: Colors.grey),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               DropdownButtonFormField<String>(
                 initialValue: selectedReceiver,
@@ -77,20 +102,89 @@ class _AddSettlementViewState extends State<AddSettlementView> {
                       );
                     })
                     .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedReceiver = value;
-                  });
-                },
+                onChanged: _onReceiverChanged,
                 validator: (value) {
-                  if (value == null) {
+                  if (value == null || value.isEmpty) {
                     return 'Select the receiver.';
                   }
                   return null;
                 },
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+
+              if (selectedReceiver != null) ...[
+                if (isLoadingDebt)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  )
+                else
+                  Card(
+                    color: outstandingPaise > 0
+                        ? Colors.red.shade50
+                        : Colors.green.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'OUTSTANDING DEBT',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: outstandingPaise > 0
+                                      ? Colors.red.shade800
+                                      : Colors.green.shade800,
+                                ),
+                              ),
+                              if (outstandingPaise > 0)
+                                TextButton.icon(
+                                  onPressed: () => _setAmount(outstandingPaise),
+                                  icon: const Icon(Icons.check, size: 16),
+                                  label: const Text('Pay Full Amount'),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            SettlementHelper.formatRupees(outstandingPaise),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: outstandingPaise > 0
+                                  ? Colors.red.shade900
+                                  : Colors.green.shade900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            outstandingPaise > 0
+                                ? 'You owe this member ${SettlementHelper.formatRupees(outstandingPaise)}.'
+                                : 'You have no outstanding debt with this member.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: outstandingPaise > 0
+                                  ? Colors.red.shade800
+                                  : Colors.green.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+              ],
 
               TextFormField(
                 controller: _amountController,
@@ -100,7 +194,7 @@ class _AddSettlementViewState extends State<AddSettlementView> {
                 decoration: const InputDecoration(
                   labelText: 'Payment Amount',
                   prefixText: '₹ ',
-                  hintText: '30.00',
+                  hintText: '50.00',
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (_) => setState(() {}),
@@ -112,40 +206,68 @@ class _AddSettlementViewState extends State<AddSettlementView> {
                       amount <= 0 ||
                       (amount * 100 - (amount * 100).round()).abs() >
                           0.000001) {
-                    return 'Enter a valid amount.';
+                    return 'Enter a valid amount with up to 2 decimal places.';
+                  }
+
+                  final inputPaise = (amount * 100).round();
+                  if (outstandingPaise > 0 &&
+                      !SettlementHelper.isValidPayment(
+                        paymentPaise: inputPaise,
+                        outstandingPaise: outstandingPaise,
+                      )) {
+                    return 'Payment cannot exceed outstanding debt of ${SettlementHelper.formatRupees(outstandingPaise)}.';
                   }
 
                   return null;
                 },
               ),
 
-              const SizedBox(height: 20),
+              if (outstandingPaise > 0 && currentAmount > 0) ...[
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    'Remaining debt after payment: ${SettlementHelper.formatRupees(remainingPaise)}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: remainingPaise == 0 ? Colors.green : Colors.grey[700],
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 16),
 
               TextFormField(
                 controller: _noteController,
-                maxLines: 3,
+                maxLines: 2,
                 decoration: const InputDecoration(
                   labelText: 'Payment Note (Optional)',
-                  hintText: 'Example: Cash payment for buttermilk expenses',
+                  hintText: 'Example: UPI transfer or Cash payment',
                   border: OutlineInputBorder(),
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               Card(
+                elevation: 0,
+                color: Colors.blue.shade50,
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Payment confirmation',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'The receiver must confirm this payment before it changes group balances.',
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'The receiver must confirm this payment before it updates group balances.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.blue.shade900,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -156,7 +278,7 @@ class _AddSettlementViewState extends State<AddSettlementView> {
 
               Obx(
                 () => SizedBox(
-                  height: 50,
+                  height: 52,
                   child: ElevatedButton(
                     onPressed: controller.isSaving.value
                         ? null

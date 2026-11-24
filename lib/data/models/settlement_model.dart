@@ -38,7 +38,10 @@ class SettlementModel {
   bool get isRejected => status == 'rejected';
   bool get isCancelled => status == 'cancelled';
 
-  factory SettlementModel.fromJson(String id, Map<String, dynamic> json) {
+  factory SettlementModel.fromJson(
+    String id,
+    Map<String, dynamic> json,
+  ) {
     DateTime? readDate(dynamic value) {
       if (value is Timestamp) return value.toDate();
       return null;
@@ -59,5 +62,22 @@ class SettlementModel {
       rejectedAt: readDate(json['rejectedAt']),
       cancelledAt: readDate(json['cancelledAt']),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'fromUserId': fromUserId,
+      'fromUserName': fromUserName,
+      'toUserId': toUserId,
+      'toUserName': toUserName,
+      'amountPaise': amountPaise,
+      'note': note,
+      'status': status,
+      'createdBy': createdBy,
+      'createdAt': FieldValue.serverTimestamp(),
+      'confirmedAt': null,
+      'rejectedAt': null,
+      'cancelledAt': null,
+    };
   }
 }

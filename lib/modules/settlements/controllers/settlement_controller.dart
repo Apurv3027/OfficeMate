@@ -15,13 +15,14 @@ class SettlementController extends GetxController {
   SettlementController(this._repository, this._groupRepository);
 
   final RxList<GroupMemberModel> members = <GroupMemberModel>[].obs;
-
   final RxList<SettlementModel> settlements = <SettlementModel>[].obs;
 
   final RxBool isLoading = true.obs;
   final RxBool isSaving = false.obs;
-
   final RxString errorMessage = ''.obs;
+
+  final RxInt selectedReceiverOutstandingPaise = 0.obs;
+  final RxBool isLoadingOutstanding = false.obs;
 
   StreamSubscription<List<SettlementModel>>? _subscription;
 
@@ -32,20 +33,33 @@ class SettlementController extends GetxController {
 
   String get currentUserIdForUi => currentUserId;
 
+  List<SettlementModel> get pendingSettlements =>
+      settlements.where((s) => s.isPending).toList();
+
+  List<SettlementModel> get confirmedSettlements =>
+      settlements.where((s) => s.isConfirmed).toList();
+
+  List<SettlementModel> get otherSettlements =>
+      settlements.where((s) => s.isRejected || s.isCancelled).toList();
+
   @override
   void onInit() {
     super.onInit();
 
-    groupId = Get.arguments as String;
-
-    loadMembers();
-    watchSettlements();
+    final arguments = Get.arguments;
+    if (arguments is String && arguments.isNotEmpty) {
+      groupId = arguments;
+      loadMembers();
+      watchSettlements();
+    } else {
+      isLoading.value = false;
+      errorMessage.value = 'Group ID is missing.';
+    }
   }
 
   Future<void> loadMembers() async {
     try {
       final result = await _groupRepository.getGroupMembers(groupId);
-
       members.assignAll(result.where((member) => member.isActive).toList());
     } catch (e) {
       errorMessage.value = e.toString().replaceFirst('Exception: ', '');
@@ -54,24 +68,38 @@ class SettlementController extends GetxController {
 
   void watchSettlements() {
     _subscription?.cancel();
-
     isLoading.value = true;
+    errorMessage.value = '';
 
-    _subscription = _repository
-        .watchSettlements(groupId)
-        .listen(
-          (result) {
-            settlements.assignAll(result);
-            isLoading.value = false;
-          },
-          onError: (error) {
-            errorMessage.value = error.toString().replaceFirst(
-              'Exception: ',
-              '',
-            );
-            isLoading.value = false;
-          },
+    _subscription = _repository.watchSettlements(groupId).listen(
+      (result) {
+        settlements.assignAll(result);
+        isLoading.value = false;
+      },
+      onError: (error) {
+        errorMessage.value = error.toString().replaceFirst(
+          'Exception: ',
+          '',
         );
+        isLoading.value = false;
+      },
+    );
+  }
+
+  Future<void> fetchOutstandingForReceiver(String receiverId) async {
+    try {
+      isLoadingOutstanding.value = true;
+      final amount = await _repository.getOutstandingAmount(
+        groupId: groupId,
+        fromUserId: currentUserId,
+        toUserId: receiverId,
+      );
+      selectedReceiverOutstandingPaise.value = amount;
+    } catch (_) {
+      selectedReceiverOutstandingPaise.value = 0;
+    } finally {
+      isLoadingOutstanding.value = false;
+    }
   }
 
   Future<void> createSettlement({
@@ -89,7 +117,7 @@ class SettlementController extends GetxController {
         note: note,
       );
 
-      Get.back();
+      Get.back(result: true);
 
       Get.snackbar(
         'Success',
@@ -143,7 +171,6 @@ class SettlementController extends GetxController {
   ) async {
     try {
       await action();
-
       Get.snackbar(
         'Success',
         successMessage,

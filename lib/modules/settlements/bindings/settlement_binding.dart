@@ -7,12 +7,18 @@ import '../controllers/settlement_controller.dart';
 class SettlementBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<SettlementRepository>(() => SettlementRepository());
+    if (!Get.isRegistered<SettlementRepository>()) {
+      Get.lazyPut<SettlementRepository>(() => SettlementRepository());
+    }
+
+    if (!Get.isRegistered<GroupRepository>()) {
+      Get.lazyPut<GroupRepository>(() => GroupRepository());
+    }
 
     Get.lazyPut<SettlementController>(
       () => SettlementController(
         Get.find<SettlementRepository>(),
-        GroupRepository(),
+        Get.find<GroupRepository>(),
       ),
     );
   }
