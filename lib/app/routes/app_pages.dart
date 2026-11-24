@@ -20,6 +20,8 @@ import '../../modules/settlements/views/add_settlement_view.dart';
 import '../../modules/settlements/views/settlements_view.dart';
 import '../../modules/splash/bindings/splash_binding.dart';
 import '../../modules/splash/views/splash_view.dart';
+import '../../modules/transactions/bindings/transaction_binding.dart';
+import '../../modules/transactions/views/transactions_view.dart';
 import '../../modules/authentication/views/login_view.dart';
 import '../../modules/authentication/views/register_view.dart';
 import '../../modules/authentication/views/forgot_password_view.dart';
@@ -116,6 +118,13 @@ class AppPages {
       name: AppRoutes.reports,
       page: () => const ReportsView(),
       binding: ReportBinding(),
+    ),
+
+    // Transactions Screen
+    GetPage(
+      name: AppRoutes.transactions,
+      page: () => const TransactionsView(),
+      binding: TransactionBinding(),
     ),
 
     // Group Members Screen

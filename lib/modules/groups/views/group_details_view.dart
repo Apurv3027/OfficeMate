@@ -152,6 +152,14 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: () {
+                Get.toNamed(AppRoutes.transactions, arguments: group.id);
+              },
+              icon: const Icon(Icons.history),
+              label: const Text('Transaction History'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
                 Get.toNamed(AppRoutes.reports, arguments: group.id);
               },
               icon: const Icon(Icons.bar_chart),
